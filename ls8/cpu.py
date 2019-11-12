@@ -21,11 +21,14 @@ class CPU:
         # set check for halted state
         self.halted = False
 
-    def ram_read(self):
-        pass
+    # mar = memory address register
+    # mdr = memory data register
 
-    def ram_write(self):
-        pass
+    def ram_read(self, mar):
+        return self.ram[mar]
+
+    def ram_write(self, mar, mdr):
+        self.ram[mar] = mdr
 
     def load(self):
         """Load a program into memory."""
@@ -79,4 +82,22 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        # while loop to check halted state
+        while not self.halted:
+            # check ram space
+            ir = self.ram[self.pc]
+            # add in alu ops
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            if ir == LDI:
+                self.reg[operand_a] = operand_b
+                self.pc += 3
+
+            if ir == PRN:
+                print(self.reg[operand_a])
+                self.pc += 2
+
+            # switch to halted state if needed
+            if ir == HLT:
+                self.halted = True
