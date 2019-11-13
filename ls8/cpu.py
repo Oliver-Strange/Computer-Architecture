@@ -5,6 +5,7 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+MUL = 0b10100010
 
 
 class CPU:
@@ -21,6 +22,14 @@ class CPU:
         # set check for halted state
         self.halted = False
 
+        # set up branch table to hold operations pointing to handler defs
+        self.branchtable = {
+            HLT: self.hlt,
+            LDI: self.ldi,
+            PRN: self.prn,
+            MUL: self.mul
+        }
+
     # mar = memory address register
     # mdr = memory data register
 
@@ -30,33 +39,31 @@ class CPU:
     def ram_write(self, mar, mdr):
         self.ram[mar] = mdr
 
-    def load(self):
+    def load(self, program):
         """Load a program into memory."""
 
         address = 0
 
-        # For now, we've just hardcoded a program:
+        with open(program) as file:
+            for line in file:
+                line = line.split("#")[0]
+                line = line.strip()
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+                if line == '':
+                    continue
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+                val = int(line, 2)
+
+                self.ram[address] = val
+                address += 1
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -90,14 +97,24 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            if ir == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
+            fndInst = ((ir >> 6)) + 1
 
-            if ir == PRN:
-                print(self.reg[operand_a])
-                self.pc += 2
+            if ir in self.branchtable:
+                self.branchtable[ir](operand_a, operand_b)
 
-            # switch to halted state if needed
-            if ir == HLT:
-                self.halted = True
+            else:
+                print("instruction error")
+
+            self.pc += fndInst
+
+    def ldi(self, operand_a, operand_b):
+        self.reg[operand_a] = operand_b
+
+    def prn(self, operand_a, operand_b):
+        print(self.reg[operand_a])
+
+    def hlt(self, operand_a, operand_b):
+        self.halted = True
+
+    def mul(self, operand_a, operand_b):
+        self.alu("MUL", operand_a, operand_b)
