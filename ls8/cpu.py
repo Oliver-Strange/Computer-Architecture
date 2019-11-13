@@ -6,6 +6,8 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
+PSH = 0b01000101
+POP = 0b01000110
 
 
 class CPU:
@@ -21,13 +23,19 @@ class CPU:
         self.reg = [0] * 8
         # set check for halted state
         self.halted = False
+        # declare stack pointer
+        self.SP = 7
+        # initialize stack at address f4 (empty stack), as described in spec
+        self.reg[self.SP] = 0xf4
 
         # set up branch table to hold operations pointing to handler defs
         self.branchtable = {
             HLT: self.hlt,
             LDI: self.ldi,
             PRN: self.prn,
-            MUL: self.mul
+            MUL: self.mul,
+            POP: self.pop,
+            PSH: self.psh
         }
 
     # mar = memory address register
@@ -118,3 +126,16 @@ class CPU:
 
     def mul(self, operand_a, operand_b):
         self.alu("MUL", operand_a, operand_b)
+
+    def psh(self, operand_a, operand_b):
+        self.reg[self.SP] -= 1
+        reg_num = self.ram[self.pc + 1]
+        reg_val = self.reg[reg_num]
+        self.ram[self.reg[self.SP]] = reg_val
+
+    def pop(self, operand_a, operand_b):
+        val = self.ram[self.reg[self.SP]]
+        reg_num = self.ram[self.pc + 1]
+        self.reg[reg_num] = val
+
+        self.reg[self.SP] += 1
