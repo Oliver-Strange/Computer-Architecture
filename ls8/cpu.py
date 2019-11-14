@@ -102,7 +102,6 @@ class CPU:
     def run(self):
         """Run the CPU."""
         # while loop to check halted state
-        self.trace()
         while not self.halted:
             # check ram space
             ir = self.ram[self.pc]
@@ -133,31 +132,24 @@ class CPU:
     def mul(self, operand_a, operand_b):
         self.alu("MUL", operand_a, operand_b)
 
-    def psh(self, operand_a, operand_b):
+    def pshVal(self, val):
         self.reg[self.SP] -= 1
-        reg_num = self.ram[self.pc + 1]
-        reg_val = self.reg[reg_num]
-        self.ram[self.reg[self.SP]] = reg_val
+        self.ram_write(self.reg[self.SP], val)
+
+    def psh(self, operand_a, operand_b):
+        self.pshVal(self.reg[operand_a])
+
+    def popVal(self):
+        val = self.ram_read(self.reg[self.SP])
+        self.reg[self.SP] += 1
+        return val
 
     def pop(self, operand_a, operand_b):
-        val = self.ram[self.reg[self.SP]]
-        reg_num = self.ram[self.pc + 1]
-        self.reg[reg_num] = val
-
-        self.reg[self.SP] += 1
+        self.reg[operand_a] = self.popVal()
 
     def call(self, operand_a, operand_b):
-        # push return address onto stack
-        return_address = self.pc + 1
-        self.reg[self.SP] -= 1
-        self.ram[self.reg[self.SP]] = return_address
-
-        # set the pc to the value in the register
-        reg_num = self.ram[self.pc + 1]
-        self.pc = self.reg[reg_num]
+        self.pshVal(self.pc + 2)
+        self.pc = self.reg[operand_a]
 
     def ret(self, operand_a, operand_b):
-        # pop the return address off the stack
-        # store it in the pc
-        self.pc = self.ram[self.reg[self.SP]]
-        self.reg[self.SP] += 1
+        self.pc = self.popVal()
