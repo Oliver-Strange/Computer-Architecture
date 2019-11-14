@@ -8,6 +8,8 @@ PRN = 0b01000111
 MUL = 0b10100010
 PSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
 
 
 class CPU:
@@ -35,7 +37,9 @@ class CPU:
             PRN: self.prn,
             MUL: self.mul,
             POP: self.pop,
-            PSH: self.psh
+            PSH: self.psh,
+            CALL: self.call,
+            RET: self.ret
         }
 
     # mar = memory address register
@@ -98,6 +102,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         # while loop to check halted state
+        self.trace()
         while not self.halted:
             # check ram space
             ir = self.ram[self.pc]
@@ -111,6 +116,7 @@ class CPU:
                 self.branchtable[ir](operand_a, operand_b)
 
             else:
+                self.trace()
                 print("instruction error")
 
             self.pc += fndInst
@@ -138,4 +144,20 @@ class CPU:
         reg_num = self.ram[self.pc + 1]
         self.reg[reg_num] = val
 
+        self.reg[self.SP] += 1
+
+    def call(self, operand_a, operand_b):
+        # push return address onto stack
+        return_address = self.pc + 1
+        self.reg[self.SP] -= 1
+        self.ram[self.reg[self.SP]] = return_address
+
+        # set the pc to the value in the register
+        reg_num = self.ram[self.pc + 1]
+        self.pc = self.reg[reg_num]
+
+    def ret(self, operand_a, operand_b):
+        # pop the return address off the stack
+        # store it in the pc
+        self.pc = self.ram[self.reg[self.SP]]
         self.reg[self.SP] += 1
