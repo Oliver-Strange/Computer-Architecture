@@ -61,7 +61,7 @@ class CPU:
         self.fl = 0
 
         # allow interrupts
-        self.iretOk = 1
+        # self.iretOk = 1
 
         # set up branch table to hold operations pointing to handler defs
         self.branchtable = {
@@ -79,16 +79,16 @@ class CPU:
             DEC: self.dec,
             DIV: self.div,
             INC: self.inc,
-            IRET: self.iret,
-            # JEQ: self.jeq,
+            # IRET: self.iret,
+            JEQ: self.jeq,
             # JLE: self.jle,
             # JLT: self.jlt,
-            # JMP: self.jmp,
-            # JNE: self.jne,
+            JMP: self.jmp,
+            JNE: self.jne,
             # LD: self.ld,
-            # OR: self.orr,
+            OR: self.orr,
             # PRA: self.pra,
-            # SHL: self.shl,
+            SHL: self.shl,
             # ST: self.st,
             SUB: self.sub,
             XOR: self.xor,
@@ -139,7 +139,8 @@ class CPU:
         elif op == "INC":
             self.reg[reg_a] += 1
         elif op == "CMP":
-            self.fl &= 0x11111000  # clear all CMP flags
+            # clear all flags
+            self.fl &= 0x11111000
             if self.reg[reg_a] < self.reg[reg_b]:
                 self.fl |= LT
             elif self.reg[reg_a] > self.reg[reg_b]:
@@ -230,17 +231,35 @@ class CPU:
     def ret(self, operand_a, operand_b):
         self.pc = self.popVal()
 
+    # Jump
+    def jmp(self, operand_a, operand_b):
+        self.pc = self.reg[operand_a]
+
+    # JEQ
+    def jeq(self, operand_a, operand_b):
+        if self.fl & EQ:
+            self.pc = self.reg[operand_a]
+        else:
+            self.setsPC = False
+
+    # JNE
+    def jne(self, operand_a, operand_b):
+        if not self.fl & EQ:
+            self.pc = self.reg[operand_a]
+        else:
+            self.setsPC = False
+
     def hlt(self, operand_a, operand_b):
         self.halted = True
 
-    def iret(self, operand_a, operand_b):
-        # resume stack work
-        for i in range(6, -1, -1):
-            self.reg[i] = self.popVal()
-        self.fl = self.popVal()
-        self.pc = self.popVal()
-        # allow interrupts
-        self.iretOK = 1
+    # def iret(self, operand_a, operand_b):
+    #     # resume stack work
+    #     for i in range(6, -1, -1):
+    #         self.reg[i] = self.popVal()
+    #     self.fl = self.popVal()
+    #     self.pc = self.popVal()
+    #     # allow interrupts
+    #     self.iretOK = 1
 
     # AlU opperations
 
@@ -273,3 +292,6 @@ class CPU:
 
     def cmp(self, operand_a, operand_b):
         self.alu("CMP", operand_a, operand_b)
+
+    def shl(self, operand_a, operand_b):
+        self.alu("SHL", operand_a, operand_b)
